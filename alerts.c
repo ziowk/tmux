@@ -49,13 +49,22 @@ alerts_timer(__unused int fd, __unused short events, void *arg)
 void
 alerts_callback(__unused int fd, __unused short events, __unused void *arg)
 {
-	struct window	*w;
-	struct session	*s;
-	struct winlink	*wl;
-	int		 flags, alerts;
+	struct window		*w;
+	struct session		*s, *s2;
+	struct session_group	*sg;
+	struct winlink		*wl;
+	int		 	 flags, alerts;
 
 	RB_FOREACH(w, windows, &windows) {
 		RB_FOREACH(s, sessions, &sessions) {
+			if ((sg = session_group_find(s)) != NULL) {
+				TAILQ_FOREACH(s2, &sg->sessions, gentry) {
+					if (s2 == s)
+						continue;
+					session_group_synchronize_from(s2);
+				}
+			}
+
 			RB_FOREACH(wl, winlinks, &s->windows) {
 				if (wl->window != w)
 					continue;
